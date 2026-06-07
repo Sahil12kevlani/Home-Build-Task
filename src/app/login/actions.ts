@@ -3,12 +3,20 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { MailtrapClient } from 'mailtrap'
+import nodemailer from 'nodemailer'
 import { headers } from 'next/headers'
 
-// Initialize Mailtrap with token if available
-const mailtrap = process.env.MAILTRAP_TOKEN
-  ? new MailtrapClient({ token: process.env.MAILTRAP_TOKEN })
+// Initialize Nodemailer Gmail transporter if credentials are available
+const gmailTransporter = (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
+  ? nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    })
   : null
 
 export async function login(currentState: any, formData: FormData) {
@@ -100,15 +108,12 @@ export async function signup(currentState: any, formData: FormData) {
     return { error: signupError.message }
   }
 
-  // 3. Send welcome email via Mailtrap
-  if (mailtrap && authData?.user?.email) {
+  // 3. Send welcome email via Gmail (Nodemailer)
+  if (gmailTransporter && authData?.user?.email) {
     try {
-      await mailtrap.send({
-        from: {
-          email: 'hello@demomailtrap.co',
-          name: 'Pinpoint Team',
-        },
-        to: [{ email: authData.user.email }],
+      await gmailTransporter.sendMail({
+        from: `"Pinpoint Team" <${process.env.GMAIL_USER}>`,
+        to: authData.user.email,
         subject: 'Welcome to Pinpoint! 📌',
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b; background-color: #ffffff;">
@@ -124,18 +129,17 @@ export async function signup(currentState: any, formData: FormData) {
             </div>
             <p style="font-size: 15px; line-height: 1.6; color: #475569;"><strong>Next Steps:</strong></p>
             <ul style="padding-left: 20px; color: #475569; font-size: 15px; line-height: 1.6;">
-              <li style="margin-bottom: 8px;">If you haven't done so, confirm your email address by clicking the link in the verification email.</li>
               <li style="margin-bottom: 8px;">Log in to your dashboard to add your first bookmark.</li>
-              <li style="margin-bottom: 8px;">Toggle the "Public" flag on any bookmark to display it on your public portfolio at <strong>/&lt;your-handle&gt;</strong>.</li>
+              <li style="margin-bottom: 8px;">Toggle the &quot;Public&quot; flag on any bookmark to display it on your public portfolio at <strong>/&lt;your-handle&gt;</strong>.</li>
             </ul>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">Pinpoint, Inc. · Built with Next.js, Supabase, and Mailtrap.</p>
+            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">Pinpoint, Inc. · Built with Next.js &amp; Supabase.</p>
           </div>
         `,
       })
     } catch (emailErr) {
-      console.error('Failed to send welcome email:', emailErr)
-      // Do not block signup success if welcome email fails (e.g. invalid key or domain sandbox restrictions)
+      console.error('Failed to send welcome email via Gmail:', emailErr)
+      // Do not block signup success if welcome email fails
     }
   }
 

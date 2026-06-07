@@ -8,28 +8,35 @@ export default async function LandingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch 10 most recent public bookmarks with user handles
-  const { data: publicShowcase } = await supabase
+  // 1. Fetch 10 most recent public bookmarks
+  const { data: bookmarks } = await supabase
     .from('bookmarks')
-    .select(`
-      id,
-      title,
-      url,
-      created_at,
-      profiles (
-        handle
-      )
-    `)
+    .select('*')
     .eq('is_public', true)
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const showcaseItems = (publicShowcase || []).map((item: any) => ({
-    id: item.id,
-    title: item.title,
-    url: item.url,
-    handle: item.profiles?.handle || 'user',
-  }))
+  let showcaseItems: Array<{ id: string, title: string, url: string, handle: string }> = []
+
+  if (bookmarks && bookmarks.length > 0) {
+    // 2. Fetch profiles for these bookmarks to avoid join relationship cache errors
+    const userIds = Array.from(new Set(bookmarks.map(bm => bm.user_id)))
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, handle')
+      .in('id', userIds)
+
+    // 3. Map handles in-memory
+    showcaseItems = bookmarks.map((bm) => {
+      const profile = (profiles || []).find(p => p.id === bm.user_id)
+      return {
+        id: bm.id,
+        title: bm.title,
+        url: bm.url,
+        handle: profile?.handle || 'user',
+      }
+    })
+  }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

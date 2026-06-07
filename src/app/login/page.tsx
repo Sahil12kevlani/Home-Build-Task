@@ -40,7 +40,7 @@ export default function LoginPage() {
 
   // Capture errors from server actions
   const displayError = errorMsg || (state && 'error' in state ? state.error : null)
-  const displaySuccess = state && 'success' in state ? state.success : false
+  const displaySuccess = mode === 'signup' && state && 'success' in state ? state.success : false
   const displayMessage = state && 'message' in state ? state.message : ''
 
   const handleHandleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

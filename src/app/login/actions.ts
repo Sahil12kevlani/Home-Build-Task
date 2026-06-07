@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { headers } from 'next/headers'
+import nodemailer from 'nodemailer'
 
 export async function login(currentState: any, formData: FormData) {
   try {
@@ -99,7 +100,11 @@ export async function signup(currentState: any, formData: FormData) {
     })
 
     if (signupError) {
-      return { error: signupError.message }
+      let errorMessage = signupError.message
+      if (errorMessage === '{}') {
+        errorMessage = 'Signup failed (Server Timeout). This usually happens when Supabase SMTP settings are incorrect or failing to send the confirmation email.'
+      }
+      return { error: errorMessage }
     }
 
     if (!authData?.user) {
@@ -111,6 +116,29 @@ export async function signup(currentState: any, formData: FormData) {
     if (authData.session) {
       revalidatePath('/', 'layout')
       redirect('/dashboard')
+    }
+
+    // 4. Send Welcome Email via Nodemailer (Gmail)
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASSWORD,
+        },
+      })
+
+      await transporter.sendMail({
+        from: `"Pinpoint" <${process.env.GMAIL_USER}>`,
+        to: email,
+        subject: 'Welcome to Pinpoint! 📌',
+        text: `Hi @${handle},\n\nWelcome to Pinpoint! We're excited to have you on board.\n\nPlease don't forget to confirm your email address using the link Supabase just sent you.\n\nHappy bookmarking!`,
+        html: `<p>Hi <strong>@${handle}</strong>,</p><p>Welcome to Pinpoint! We're excited to have you on board.</p><p>Please don't forget to confirm your email address using the link we just sent you.</p><p>Happy bookmarking!</p>`,
+      })
+      console.log('[signup] Welcome email sent successfully to', email)
+    } catch (emailErr) {
+      console.error('[signup] Failed to send welcome email:', emailErr)
+      // We don't fail the signup if the welcome email fails, we just log it.
     }
 
     // 3b. Confirm email = ON — user must click the link Supabase just emailed them

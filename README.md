@@ -7,7 +7,7 @@ Built with **Next.js 16 (App Router)**, **TypeScript**, **Supabase (Auth & Datab
 ---
 
 ## Live URL
-*(Provide your deployed Vercel URL here)*
+[https://home-build-task.vercel.app/](https://home-build-task.vercel.app/)
 
 ---
 
@@ -61,6 +61,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 3. **useActionState Types:** Toggling the signup and login functions dynamically in the `useActionState` hook caused a TypeScript overload type-check error due to differing return signatures. We resolved this by creating a unified `handleAuth` wrapper method that types both operations cleanly.
 4. **Dynamic Redirect Host Verification:** The verification links in the confirmation emails were failing because they initially defaulted to `localhost:3000`. We solved this by using Next.js `headers()` to dynamically resolve the request's protocol and host, ensuring email redirect URLs link correctly to Vercel or local hosts.
 5. **Backend Verification Checks:** To prevent accounts from being used without verifying their email address (in case verification checks are bypassed in local configs), we added explicit sign-in checks checking the `email_confirmed_at` timestamp and blocking sessions for unverified registrations.
+6. **Supabase SMTP Empty Error Issue:** During registration, users were seeing an obscure "empty object" (`{}`) error on the frontend. We debugged this together and discovered it was caused by Supabase returning a 504 Gateway Timeout because the Custom SMTP port was incorrectly set to 464 instead of 465. We fixed the SMTP configuration in the dashboard and updated the frontend error handler to gracefully intercept empty error strings and display a friendly fallback message instead.
 
 ---
 

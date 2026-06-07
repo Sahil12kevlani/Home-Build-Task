@@ -40,8 +40,9 @@ Create a `.env.local` file in the root directory and populate it with your crede
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
-# Resend API key for onboarding welcome emails
-RESEND_API_KEY=re_your_api_key_here
+# Gmail SMTP credentials for onboarding welcome emails
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_app_password
 ```
 
 ### 5. Running the Application

@@ -59,6 +59,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 1. **styled-jsx in Server Components:** The agent attempted to write a `<style jsx>` block inside the Server Component (`page.tsx`) to implement screen overrides, which failed during the Turbopack build phase. I caught this from the error log, removed the inline style blocks, and unified all media queries and overrides inside our main Vanilla CSS stylesheet (`src/app/globals.css`).
 2. **Next.js 16 Convention Deprecations:** The agent initially set up route protection in `src/middleware.ts`. However, Next.js 16 deprecated this convention in favor of a network edge boundary named `src/proxy.ts` exporting a `proxy` function. The compiler emitted a warning; we resolved it by moving the file to `src/proxy.ts` and updating the export.
 3. **useActionState Types:** Toggling the signup and login functions dynamically in the `useActionState` hook caused a TypeScript overload type-check error due to differing return signatures. We resolved this by creating a unified `handleAuth` wrapper method that types both operations cleanly.
+4. **Dynamic Redirect Host Verification:** The verification links in the confirmation emails were failing because they initially defaulted to `localhost:3000`. We solved this by using Next.js `headers()` to dynamically resolve the request's protocol and host, ensuring email redirect URLs link correctly to Vercel or local hosts.
+5. **Backend Verification Checks:** To prevent accounts from being used without verifying their email address (in case verification checks are bypassed in local configs), we added explicit sign-in checks checking the `email_confirmed_at` timestamp and blocking sessions for unverified registrations.
 
 ---
 

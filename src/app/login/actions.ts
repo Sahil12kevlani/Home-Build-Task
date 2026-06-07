@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { Resend } from 'resend'
+import { MailtrapClient } from 'mailtrap'
 import { headers } from 'next/headers'
 
-// Initialize Resend with key if available
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+// Initialize Mailtrap with token if available
+const mailtrap = process.env.MAILTRAP_TOKEN
+  ? new MailtrapClient({ token: process.env.MAILTRAP_TOKEN })
+  : null
 
 export async function login(currentState: any, formData: FormData) {
   const email = formData.get('email') as string
@@ -98,12 +100,15 @@ export async function signup(currentState: any, formData: FormData) {
     return { error: signupError.message }
   }
 
-  // 3. Send welcome email via Resend
-  if (resend && authData?.user?.email) {
+  // 3. Send welcome email via Mailtrap
+  if (mailtrap && authData?.user?.email) {
     try {
-      await resend.emails.send({
-        from: 'Pinpoint <onboarding@resend.dev>',
-        to: authData.user.email,
+      await mailtrap.send({
+        from: {
+          email: 'hello@demomailtrap.co',
+          name: 'Pinpoint Team',
+        },
+        to: [{ email: authData.user.email }],
         subject: 'Welcome to Pinpoint! 📌',
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b; background-color: #ffffff;">
@@ -124,7 +129,7 @@ export async function signup(currentState: any, formData: FormData) {
               <li style="margin-bottom: 8px;">Toggle the "Public" flag on any bookmark to display it on your public portfolio at <strong>/&lt;your-handle&gt;</strong>.</li>
             </ul>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">Pinpoint, Inc. · Built with Next.js, Supabase, and Resend.</p>
+            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">Pinpoint, Inc. · Built with Next.js, Supabase, and Mailtrap.</p>
           </div>
         `,
       })

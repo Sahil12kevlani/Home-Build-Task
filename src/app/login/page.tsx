@@ -38,8 +38,11 @@ export default function LoginPage() {
     setErrorMsg(null)
   }, [mode, handle])
 
-  // Capture errors from server actions
-  const displayError = errorMsg || (state && 'error' in state ? state.error : null)
+  // Capture errors from server actions — coerce to string to prevent {} rendering
+  const rawError = errorMsg || (state && 'error' in state ? state.error : null)
+  const displayError: string | null = rawError
+    ? (typeof rawError === 'string' ? rawError : JSON.stringify(rawError))
+    : null
   const displaySuccess = mode === 'signup' && state && 'success' in state ? state.success : false
   const displayMessage = state && 'message' in state ? state.message : ''
 

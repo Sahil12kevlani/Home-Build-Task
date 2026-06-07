@@ -16,7 +16,7 @@ alter table public.profiles enable row level security;
 -- 2. Create bookmarks table
 create table if not exists public.bookmarks (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
   title text not null,
   url text not null,
   is_public boolean default false not null,

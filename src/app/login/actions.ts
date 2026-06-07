@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { Resend } from 'resend'
+import { headers } from 'next/headers'
 
 // Initialize Resend with key if available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -18,13 +19,19 @@ export async function login(currentState: any, formData: FormData) {
 
   const supabase = await createClient()
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   })
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Enforce email verification check
+  if (data?.user && !data.user.email_confirmed_at) {
+    await supabase.auth.signOut()
+    return { error: 'Please verify your email address by clicking the link in the verification email before logging in.' }
   }
 
   revalidatePath('/', 'layout')
@@ -68,6 +75,12 @@ export async function signup(currentState: any, formData: FormData) {
     return { error: `Handle @${handle} is already taken` }
   }
 
+  // Get host dynamically from request headers
+  const headersList = await headers()
+  const host = headersList.get('host')
+  const protocol = host?.includes('localhost') ? 'http' : 'https'
+  const siteUrl = `${protocol}://${host}`
+
   // 2. Register user in Supabase Auth
   // We pass the handle in metadata so the DB trigger can capture it and insert it into profiles table.
   const { data: authData, error: signupError } = await supabase.auth.signUp({
@@ -77,7 +90,7 @@ export async function signup(currentState: any, formData: FormData) {
       data: {
         handle: handle,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   })
 

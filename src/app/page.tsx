@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { Bookmark, Shield, Sparkles, Smartphone, ArrowRight } from 'lucide-react'
+import { Bookmark, Shield, Sparkles, Smartphone, ArrowRight, Globe, ExternalLink, Link2 } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -7,6 +7,29 @@ export const dynamic = 'force-dynamic'
 export default async function LandingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Fetch 10 most recent public bookmarks with user handles
+  const { data: publicShowcase } = await supabase
+    .from('bookmarks')
+    .select(`
+      id,
+      title,
+      url,
+      created_at,
+      profiles (
+        handle
+      )
+    `)
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  const showcaseItems = (publicShowcase || []).map((item: any) => ({
+    id: item.id,
+    title: item.title,
+    url: item.url,
+    handle: item.profiles?.handle || 'user',
+  }))
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -105,6 +128,102 @@ export default async function LandingPage() {
             )}
           </div>
 
+        </section>
+
+        {/* Public Bookmarks Showcase Section */}
+        <section style={{ 
+          padding: '40px 24px 80px 24px', 
+          maxWidth: '800px',
+          margin: '0 auto'
+        }} className="animate-fade-in">
+          <h2 style={{ 
+            textAlign: 'center', 
+            fontSize: '1.75rem', 
+            fontFamily: 'var(--font-title)', 
+            marginBottom: '32px',
+            color: 'var(--text-primary)'
+          }}>
+            Explore Community Links
+          </h2>
+
+          {showcaseItems.length === 0 ? (
+            <div className="glass-panel" style={{ 
+              padding: '40px', 
+              textAlign: 'center', 
+              border: '1px dashed var(--border-color)',
+              background: 'rgba(255, 255, 255, 0.01)'
+            }}>
+              <Link2 size={28} style={{ color: 'var(--text-muted)', marginBottom: '8px', opacity: 0.5 }} />
+              <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+                No public bookmarks shared yet. Be the first to share one!
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {showcaseItems.map((item) => (
+                <div 
+                  key={item.id} 
+                  className="glass-panel"
+                  style={{ 
+                    padding: '16px 20px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    gap: '20px'
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                      <a 
+                        href={item.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ 
+                          fontSize: '1.05rem', 
+                          fontWeight: '600', 
+                          color: 'var(--text-primary)',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          {item.title}
+                        </span>
+                        <ExternalLink size={12} style={{ opacity: 0.6 }} />
+                      </a>
+                    </div>
+                    <span style={{ 
+                      fontSize: '0.82rem', 
+                      color: 'var(--text-muted)',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      display: 'block'
+                    }}>
+                      {item.url}
+                    </span>
+                  </div>
+
+                  {/* Handle Link */}
+                  <Link 
+                    href={`/${item.handle}`} 
+                    className="user-tag"
+                    style={{ 
+                      padding: '5px 10px', 
+                      fontSize: '0.8rem',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <Globe size={12} />
+                    <span>@{item.handle}</span>
+                  </Link>
+
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Feature Grid */}
